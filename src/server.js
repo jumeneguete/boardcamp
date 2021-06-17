@@ -17,12 +17,35 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+//Categories Route
 app.get('/categories', async (req, res) => {
     try {
         const cat = await connection.query('SELECT * FROM  categories');
         res.send(cat.rows);
 
     } catch (err){
+        console.log(err);
+        res.sendStatus(500);
+    }
+});
+
+app.post('/categories', async (req, res) => {
+    const { name } = req.body;
+    console.log(name)
+    if (!name){
+        return res.sendStatus(400);
+    }
+
+    
+    try {
+        const existingCat = await connection.query('SELECT * FROM categories WHERE name = $1', [name])
+        if (existingCat){
+            return res.sendStatus(409);
+        }
+        await connection.query('INSERT INTO categories (name) VALUES ($1)', [name]);
+        res.sendStatus(201);
+        
+    } catch(err){
         console.log(err);
         res.sendStatus(500);
     }
