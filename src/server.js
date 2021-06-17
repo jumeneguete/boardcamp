@@ -90,7 +90,26 @@ app.post('/games', async (req, res) => {
         console.log(err);
         res.sendStatus(500);
     }
-})
+});
+
+//Customers Route
+app.get('/customers', async (req, res) => {
+    const { cpf } = req.query;
+    const searchedCPF = cpf ? `${cpf}%` : "";
+
+    try {
+        if (searchedCPF){
+            const client = await connection.query('SELECT * FROM customers WHERE name ILIKE $1', [searchedCPF]);
+            return res.send(client.rows);
+        }
+        const customers = await connection.query('SELECT * FROM  customers');
+        res.send(customers.rows);
+
+    } catch (err){
+        console.log(err);
+        res.sendStatus(500);
+    }
+});
 
 
 app.listen(4000, () => {
