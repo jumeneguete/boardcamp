@@ -57,7 +57,7 @@ app.get('/games', async (req, res) => {
 
     try {
         if (searchedName){
-            const game = await connection.query('SELECT * FROM games WHERE name LIKE $1', [searchedName]);
+            const game = await connection.query('SELECT * FROM games WHERE name ILIKE $1', [searchedName]);
             return res.send(game.rows);
         }
         const games = await connection.query('SELECT * FROM  games');
@@ -68,6 +68,29 @@ app.get('/games', async (req, res) => {
         res.sendStatus(500);
     }
 });
+
+app.post('/games', async (req, res) => {
+    const { name, image, stockTotal,categoryId, pricePerDay } = req.body;
+    const validation = !name || stockTotal<= 0 || pricePerDay <= 0
+
+    try {
+        const validCategory = await connection.query('SELECT * FROM categories WHERE id = $1', [categoryId]);
+        if (validation || validCategory.rows.length === 0){
+            return res.sendStatus(400);
+        }
+
+        const existingGame = await connection.query('SELECT * FROM games WHERE name = $1', [name]);
+        if (existingGame.rows.length !== 0){
+            return res.sendStatus(409);
+        }
+
+        await connection.query(`INSERT INTO games (name, image, "stockTotal","categoryId", "pricePerDay") values ($1, $2, $3, $4, $5)`, [name, image, stockTotal,categoryId, pricePerDay ])
+        res.sendStatus(201);
+    }catch(err){
+        console.log(err);
+        res.sendStatus(500);
+    }
+})
 
 
 app.listen(4000, () => {
