@@ -35,7 +35,6 @@ app.post('/categories', async (req, res) => {
     if (!name){
         return res.sendStatus(400);
     }
-
     
     try {
         const existingCat = await connection.query('SELECT * FROM categories WHERE name = $1', [name])
@@ -49,7 +48,26 @@ app.post('/categories', async (req, res) => {
         console.log(err);
         res.sendStatus(500);
     }
-})
+});
+
+//Games Route
+app.get('/games', async (req, res) => {
+    const { name } = req.query;
+    const searchedName = name ? `${name}%` : "";
+
+    try {
+        if (searchedName){
+            const game = await connection.query('SELECT * FROM games WHERE name LIKE $1', [searchedName]);
+            return res.send(game.rows);
+        }
+        const games = await connection.query('SELECT * FROM  games');
+        res.send(games.rows);
+
+    } catch (err){
+        console.log(err);
+        res.sendStatus(500);
+    }
+});
 
 
 app.listen(4000, () => {
