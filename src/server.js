@@ -111,6 +111,22 @@ app.get('/customers', async (req, res) => {
     }
 });
 
+app.get('/customers/:id', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const customer = await connection.query('SELECT * FROM  customers WHERE id = $1', [id]);
+        if (customer.length > 0){
+            return res.send(customer.rows[0]);
+        } else {
+            return res.sendStatus(404);
+        }
+
+    } catch (err){
+        console.log(err);
+        res.sendStatus(500);
+    }
+});
 
 app.listen(4000, () => {
     console.log('Server is litening on port 4000.');
