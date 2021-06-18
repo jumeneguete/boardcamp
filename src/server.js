@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import pg from 'pg';
-
+import joi from 'joi';
 
 const { Pool } = pg;
 
@@ -112,11 +112,11 @@ app.get('/customers', async (req, res) => {
 });
 
 app.get('/customers/:id', async (req, res) => {
-    const { id } = req.params;
+    const id  = parseInt(req.params.id);
 
     try {
         const customer = await connection.query('SELECT * FROM  customers WHERE id = $1', [id]);
-        if (customer.length > 0){
+        if (customer.rows.length > 0){
             return res.send(customer.rows[0]);
         } else {
             return res.sendStatus(404);
@@ -125,6 +125,38 @@ app.get('/customers/:id', async (req, res) => {
     } catch (err){
         console.log(err);
         res.sendStatus(500);
+    }
+});
+
+app.post('/customers', async (req, res) => {
+    const { name, phone, cpf, birthday } = req.body;
+
+    const userSchema = joi.object({
+        name: joi.string().min(1).required(),
+        birthday : joi.date(),
+        phone: joi.string().pattern(/^[0-9]+$/).min(10).max(11),
+        cpf : joi.string().pattern(/^[0-9]+$/).length(11)
+      })
+
+    const validInput = userSchema.validate({ name, phone, cpf, birthday });
+    if (!validInput.error) {
+        try{
+            const existingCpf = await connection.query(`SELECT * FROM customers WHERE cpf = $1`, [cpf]);
+            console.log(existingCpf.rows.length)
+            if (existingCpf.rows.length === 0){
+                await connection.query(`INSERT INTO customers (name, phone, cpf, birthday )VALUES ($1, $2, $3, $4)`, [name, phone, cpf, birthday]);
+                return res.sendStatus(201);
+            } else {
+                return res.sendStatus(409);
+            }          
+    
+        } catch(err) {
+            console.log(err);
+            res.sendStatus(500);
+        }
+
+    } else {
+        return res.sendStatus(400);
     }
 });
 
