@@ -184,6 +184,35 @@ app.put('/customers/:id', async (req, res) => {
     
 });
 
+//Rentals Route
+app.get('/rentals', async (req, res) => {
+    let { customerId, gameId } = req.query;
+    customerId = parseInt(customerId) || null;
+    gameId = parseInt(gameId) || null;
+
+    try {
+        const searchedCustomer = await connection.query(`SELECT * FROM customers WHERE id = $1`, [customerId]);
+        const searchedGame = await connection.query(`SELECT * FROM games WHERE id = $1`, [gameId]);
+        console.log(searchedGame.rows)
+
+        if (customerId && searchedCustomer.rows.length > 0){
+            const rentalByCustomer = await connection.query('SELECT * FROM rentals WHERE "customerId" = $1', [customerId]);
+            return res.send(rentalByCustomer.rows);
+        }
+
+        if (gameId && searchedGame.rows.length > 0){
+            const rentalByGame = await connection.query('SELECT * FROM rentals WHERE "gameId" = $1', [gameId]);
+            return res.send(rentalByGame.rows);
+        }
+        const rentals = await connection.query('SELECT * FROM  rentals');
+        res.send(rentals.rows);
+
+    } catch (err){
+        console.log(err);
+        res.sendStatus(500);
+    }
+});
+
 app.listen(4000, () => {
     console.log('Server is litening on port 4000.');
   });
