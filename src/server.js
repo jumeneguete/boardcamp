@@ -17,6 +17,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const userSchema = joi.object({
+    name: joi.string().min(1).required(),
+    birthday : joi.date().iso(),
+    phone: joi.string().pattern(/^[0-9]+$/).min(10).max(11),
+    cpf : joi.string().pattern(/^[0-9]+$/).length(11)
+  })
+
 //Categories Route
 app.get('/categories', async (req, res) => {
     try {
@@ -131,18 +138,10 @@ app.get('/customers/:id', async (req, res) => {
 app.post('/customers', async (req, res) => {
     const { name, phone, cpf, birthday } = req.body;
 
-    const userSchema = joi.object({
-        name: joi.string().min(1).required(),
-        birthday : joi.date(),
-        phone: joi.string().pattern(/^[0-9]+$/).min(10).max(11),
-        cpf : joi.string().pattern(/^[0-9]+$/).length(11)
-      })
-
     const validInput = userSchema.validate({ name, phone, cpf, birthday });
     if (!validInput.error) {
         try{
             const existingCpf = await connection.query(`SELECT * FROM customers WHERE cpf = $1`, [cpf]);
-            console.log(existingCpf.rows.length)
             if (existingCpf.rows.length === 0){
                 await connection.query(`INSERT INTO customers (name, phone, cpf, birthday )VALUES ($1, $2, $3, $4)`, [name, phone, cpf, birthday]);
                 return res.sendStatus(201);
@@ -158,6 +157,31 @@ app.post('/customers', async (req, res) => {
     } else {
         return res.sendStatus(400);
     }
+});
+
+app.put('/customers/:id', async (req, res) => {
+    const id = parseInt(req.params.id);
+    const { name, phone, cpf, birthday } = req.body;
+
+    const validInput = userSchema.validate({ name, phone, cpf, birthday });
+    if (!validInput.error) {
+        try {
+            const existingCpf = await connection.query(`SELECT * FROM customers WHERE cpf = $1 AND id <> $2`, [cpf, id]);
+            if (existingCpf.rows.length === 0){
+                await connection.query(`UPDATE customers SET name = $1, phone = $2, cpf = $3, birthday = $4 WHERE id = $5`, [name, phone, cpf, birthday, id]);
+                return res.sendStatus(200);
+            } else {
+                return res.sendStatus(409);
+            }          
+    
+        } catch(err) {
+            console.log(err);
+            res.sendStatus(500);
+        }
+    } else {
+        return res.sendStatus(400);
+    }
+    
 });
 
 app.listen(4000, () => {
